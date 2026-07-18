@@ -10,9 +10,7 @@
 }
 
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+  margin: 0; padding: 0; box-sizing: border-box;
 }
 
 body {
@@ -28,7 +26,7 @@ body {
 
 .container {
   width: 100%;
-  max-width: 1000px;
+  max-width: 1100px;
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -62,7 +60,7 @@ header h1 {
 
 #symbolInput {
   background: var(--glass);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 12px;
   padding: 0.9rem 1.5rem;
   font-size: 1rem;
@@ -75,7 +73,7 @@ header h1 {
 
 #symbolInput:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 15px rgba(0, 188, 212, 0.3);
+  box-shadow: 0 0 15px rgba(0,188,212,0.3);
 }
 
 #fetchBtn {
@@ -92,7 +90,7 @@ header h1 {
 
 #fetchBtn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 188, 212, 0.4);
+  box-shadow: 0 8px 25px rgba(0,188,212,0.4);
 }
 
 .dashboard {
@@ -101,24 +99,26 @@ header h1 {
   gap: 2rem;
 }
 
-.hidden {
-  display: none !important;
-}
+.hidden { display: none !important; }
 
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
+}
+
+#enhancedCards {
+  margin-top: 0.5rem;
 }
 
 .card {
   backdrop-filter: blur(15px);
   background: var(--glass);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: var(--radius);
   padding: 1.5rem;
-  text-align: center;
   transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
 }
 
 .card:hover {
@@ -126,21 +126,39 @@ header h1 {
   box-shadow: 0 12px 40px rgba(0,0,0,0.5);
 }
 
-.label {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #999;
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 0.5rem;
 }
 
+.label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #999;
+}
+
+.info-icon {
+  font-size: 1.2rem;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.info-icon:hover {
+  opacity: 1;
+}
+
 .value {
-  font-size: 2.2rem;
+  font-size: 2rem;
   font-weight: 700;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin: 0.5rem 0;
+  word-break: break-word;
 }
 
 .symbol-display {
@@ -151,6 +169,7 @@ header h1 {
 .trend {
   font-size: 0.8rem;
   color: #666;
+  margin-top: 0.3rem;
 }
 
 .chart-container {
@@ -169,7 +188,7 @@ canvas {
 }
 
 .error-message {
-  background: rgba(255, 82, 82, 0.15);
+  background: rgba(255,82,82,0.15);
   border: 1px solid var(--error);
   border-radius: 12px;
   padding: 1rem;
@@ -194,6 +213,72 @@ canvas {
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Modal ---------- */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(6px);
+}
+
+.modal-card {
+  background: var(--glass);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 480px;
+  width: 90%;
+  color: var(--text);
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 2rem;
+  cursor: pointer;
+}
+
+.modal-close:hover { color: white; }
+
+#modalTitle {
+  font-size: 1.6rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.formula-box {
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  color: var(--accent);
+  margin-bottom: 1rem;
+  overflow-x: auto;
+}
+
+.modal-explain {
+  color: #ccc;
+  line-height: 1.6;
+  margin-bottom: 0.8rem;
+}
+
+.modal-meaning {
+  color: #aaa;
+  font-style: italic;
+  border-left: 3px solid var(--accent2);
+  padding-left: 1rem;
 }

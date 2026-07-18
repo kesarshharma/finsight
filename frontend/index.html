@@ -8,10 +8,23 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
+  <!-- Info Modal (hidden by default) -->
+  <div id="infoModal" class="modal-overlay hidden">
+    <div class="modal-card glass">
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <h2 id="modalTitle"></h2>
+      <div class="modal-body">
+        <div class="formula-box" id="modalFormula"></div>
+        <p class="modal-explain" id="modalExplanation"></p>
+        <p class="modal-meaning" id="modalMeaning"></p>
+      </div>
+    </div>
+  </div>
+
   <div class="container">
     <header>
       <h1>📈 FinSight</h1>
-      <p class="subtitle">Retail Investment Analytics</p>
+      <p class="subtitle">Retail Investment Analytics – Understand Every Number</p>
     </header>
 
     <div class="search-box">
@@ -20,21 +33,77 @@
     </div>
 
     <div id="dashboard" class="dashboard hidden">
+      <!-- Original cards with info icons -->
       <div class="cards">
         <div class="card glass">
-          <div class="label">Latest Price</div>
+          <div class="card-header">
+            <span class="label">Latest Price</span>
+            <span class="info-icon" onclick="showInfo('price')">ℹ️</span>
+          </div>
           <div class="value" id="price">—</div>
           <div class="symbol-display" id="symbolName"></div>
         </div>
         <div class="card glass">
-          <div class="label">20-Day SMA</div>
+          <div class="card-header">
+            <span class="label">20-Day SMA</span>
+            <span class="info-icon" onclick="showInfo('sma')">ℹ️</span>
+          </div>
           <div class="value" id="sma">—</div>
           <div class="trend">Simple Moving Average</div>
         </div>
         <div class="card glass">
-          <div class="label">Volatility (Annualized)</div>
+          <div class="card-header">
+            <span class="label">Volatility (Annualized)</span>
+            <span class="info-icon" onclick="showInfo('volatility')">ℹ️</span>
+          </div>
           <div class="value" id="volatility">—</div>
-          <div class="trend">Log returns, 252 days</div>
+          <div class="trend">Log returns × √252</div>
+        </div>
+      </div>
+
+      <!-- Enhanced Analytics row -->
+      <div class="cards" id="enhancedCards">
+        <div class="card glass">
+          <div class="card-header">
+            <span class="label">RSI (14)</span>
+            <span class="info-icon" onclick="showInfo('rsi')">ℹ️</span>
+          </div>
+          <div class="value" id="rsi">—</div>
+          <div class="trend">Over 70 overbought, under 30 oversold</div>
+        </div>
+        <div class="card glass">
+          <div class="card-header">
+            <span class="label">MACD</span>
+            <span class="info-icon" onclick="showInfo('macd')">ℹ️</span>
+          </div>
+          <div class="value" id="macd_value">—</div>
+          <div class="trend">Signal: <span id="macd_signal">—</span></div>
+          <div class="trend">Histogram: <span id="macd_hist">—</span></div>
+        </div>
+        <div class="card glass">
+          <div class="card-header">
+            <span class="label">Beta</span>
+            <span class="info-icon" onclick="showInfo('beta')">ℹ️</span>
+          </div>
+          <div class="value" id="beta">—</div>
+          <div class="trend">vs S&P 500</div>
+        </div>
+        <div class="card glass">
+          <div class="card-header">
+            <span class="label">P/E Ratio</span>
+            <span class="info-icon" onclick="showInfo('pe')">ℹ️</span>
+          </div>
+          <div class="value" id="pe">—</div>
+          <div class="trend">Trailing</div>
+        </div>
+        <div class="card glass">
+          <div class="card-header">
+            <span class="label">Market Cap</span>
+            <span class="info-icon" onclick="showInfo('marketcap')">ℹ️</span>
+          </div>
+          <div class="value" id="marketcap">—</div>
+          <div class="trend">52W High: <span id="high52">—</span></div>
+          <div class="trend">52W Low: <span id="low52">—</span></div>
         </div>
       </div>
 
