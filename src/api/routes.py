@@ -3,7 +3,8 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-import os
+import os, math
+from datetime import datetime, timedelta
 
 from src.models.schemas import AnalyticsResponse, HealthResponse
 from src.services.market_data import fetch_stock_data
@@ -51,28 +52,105 @@ async def analytics(symbol: str):
     return AnalyticsResponse(**data)
 
 
-# New endpoint: returns historical prices for charting
 @router.get("/historical/{symbol}")
 async def historical(symbol: str):
     import yfinance as yf
-    from datetime import datetime, timedelta
-
     try:
         ticker = yf.Ticker(symbol)
-        # Fetch 6 months of daily data
         hist = ticker.history(period="6mo")
         if hist.empty:
             raise HTTPException(status_code=404, detail="No data found")
-
-        # Prepare data for chart: list of {date, close}
         data = [
-            {
-                "date": date.strftime("%Y-%m-%d"),
-                "close": round(row["Close"], 2)
-            }
+            {"date": date.strftime("%Y-%m-%d"), "close": round(row["Close"], 2)}
             for date, row in hist.iterrows()
         ]
         return {"symbol": symbol.upper(), "history": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/enhanced/{symbol}")
+async def enhanced_analytics(symbol: str):
+    import yfinance as yf
+    try:
+        stock = yf.Ticker(symbol)
+        info = stock.info
+        hist = stock.history(period="1y")
+
+        if hist.empty:
+            raise HTTPException(status_code=404, detail="No data found")
+
+        close_prices = hist["Close"].tolist()
+        latest = round(close_prices[-1], 2)
+
+        # RSI (14 days)
+        delta = hist["Close"].diff()
+        gain = delta.where(delta > 0, 0.0)
+        loss = -delta.where(delta < 0, 0.0)
+        avg_gain = gain.rolling(window=14).mean().iloc[-1]
+        avg_loss = loss.rolling(window=14).mean().iloc[-1]
+        if avg_loss == 0:
+            rsi = 100
+        else:
+            rs = avg_gain / avg_loss
+            rsi = 100 - (100 / (1 + rs))
+        rsi = round(rsi, 1)
+
+        # MACD
+        ema12 = hist["Close"].ewm(span=12, adjust=False).mean()
+        ema26 = hist["Close"].ewm(span=26, adjust=False).mean()
+        macd_line = ema12 - ema26
+        signal = macd_line.ewm(span=9, adjust=False).mean()
+        macd_value = round(macd_line.iloc[-1], 4)
+        signal_value = round(signal.iloc[-1], 4)
+        histogram = round(macd_value - signal_value, 4)
+
+        # Beta vs S&P 500 (^GSPC)
+        spy = yf.Ticker("^GSPC").history(period="1y")["Close"]
+        combined = hist["Close"].to_frame("stock").merge(
+            spy.to_frame("spy"), left_index=True, right_index=True
+        )
+        returns = combined.pct_change().dropna()
+        if not returns.empty:
+            covariance = returns["stock"].cov(returns["spy"])
+            variance = returns["spy"].var()
+            beta = round(covariance / variance, 2) if variance != 0 else None
+        else:
+            beta = None
+
+        # Fundamentals
+        pe_ratio = info.get("trailingPE", "N/A")
+        market_cap = info.get("marketCap", None)
+        if market_cap:
+            if market_cap >= 1e12:
+                market_cap_str = f"${market_cap / 1e12:.2f}T"
+            elif market_cap >= 1e9:
+                market_cap_str = f"${market_cap / 1e9:.2f}B"
+            else:
+                market_cap_str = f"${market_cap:,.0f}"
+        else:
+            market_cap_str = "N/A"
+
+        high_52w = info.get("fiftyTwoWeekHigh", "N/A")
+        low_52w = info.get("fiftyTwoWeekLow", "N/A")
+
+        return {
+            "symbol": symbol.upper(),
+            "name": info.get("longName", symbol.upper()),
+            "latest_price": latest,
+            "rsi": rsi,
+            "macd": {
+                "macd_line": macd_value,
+                "signal": signal_value,
+                "histogram": histogram,
+            },
+            "beta": beta,
+            "pe_ratio": pe_ratio,
+            "market_cap": market_cap_str,
+            "52w_high": high_52w,
+            "52w_low": low_52w,
+        }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -85,4 +163,3 @@ if os.path.exists(frontend_path):
     @router.get("/")
     async def read_index():
         return FileResponse(os.path.join(frontend_path, "index.html"))
-    

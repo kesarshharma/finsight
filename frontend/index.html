@@ -8,7 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-  <!-- Info Modal (hidden by default) -->
+  <!-- Info Modal -->
   <div id="infoModal" class="modal-overlay hidden">
     <div class="modal-card glass">
       <button class="modal-close" onclick="closeModal()">&times;</button>
@@ -33,7 +33,7 @@
     </div>
 
     <div id="dashboard" class="dashboard hidden">
-      <!-- Original cards with info icons -->
+      <!-- Basic Analytics Cards -->
       <div class="cards">
         <div class="card glass">
           <div class="card-header">
@@ -41,19 +41,22 @@
             <span class="info-icon" onclick="showInfo('price')">ℹ️</span>
           </div>
           <div class="value" id="price">—</div>
-          <div class="symbol-display" id="symbolName"></div>
+          <div class="symbol-display">
+            <span class="company-name" id="companyName"></span>
+            <span class="ticker" id="tickerSymbol"></span>
+          </div>
         </div>
         <div class="card glass">
           <div class="card-header">
-            <span class="label">20-Day SMA</span>
+            <span class="label">20‑Day Simple Moving Average</span>
             <span class="info-icon" onclick="showInfo('sma')">ℹ️</span>
           </div>
           <div class="value" id="sma">—</div>
-          <div class="trend">Simple Moving Average</div>
+          <div class="trend">SMA</div>
         </div>
         <div class="card glass">
           <div class="card-header">
-            <span class="label">Volatility (Annualized)</span>
+            <span class="label">Annualized Volatility</span>
             <span class="info-icon" onclick="showInfo('volatility')">ℹ️</span>
           </div>
           <div class="value" id="volatility">—</div>
@@ -61,11 +64,11 @@
         </div>
       </div>
 
-      <!-- Enhanced Analytics row -->
+      <!-- Enhanced Analytics Cards -->
       <div class="cards" id="enhancedCards">
         <div class="card glass">
           <div class="card-header">
-            <span class="label">RSI (14)</span>
+            <span class="label">Relative Strength Index (14)</span>
             <span class="info-icon" onclick="showInfo('rsi')">ℹ️</span>
           </div>
           <div class="value" id="rsi">—</div>
@@ -73,7 +76,7 @@
         </div>
         <div class="card glass">
           <div class="card-header">
-            <span class="label">MACD</span>
+            <span class="label">MACD (Moving Average Convergence Divergence)</span>
             <span class="info-icon" onclick="showInfo('macd')">ℹ️</span>
           </div>
           <div class="value" id="macd_value">—</div>
@@ -82,7 +85,7 @@
         </div>
         <div class="card glass">
           <div class="card-header">
-            <span class="label">Beta</span>
+            <span class="label">Beta (β)</span>
             <span class="info-icon" onclick="showInfo('beta')">ℹ️</span>
           </div>
           <div class="value" id="beta">—</div>
@@ -90,7 +93,7 @@
         </div>
         <div class="card glass">
           <div class="card-header">
-            <span class="label">P/E Ratio</span>
+            <span class="label">Price‑to‑Earnings (P/E) Ratio</span>
             <span class="info-icon" onclick="showInfo('pe')">ℹ️</span>
           </div>
           <div class="value" id="pe">—</div>
@@ -98,7 +101,7 @@
         </div>
         <div class="card glass">
           <div class="card-header">
-            <span class="label">Market Cap</span>
+            <span class="label">Market Capitalization</span>
             <span class="info-icon" onclick="showInfo('marketcap')">ℹ️</span>
           </div>
           <div class="value" id="marketcap">—</div>
