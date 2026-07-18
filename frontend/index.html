@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinSight | Investment Analytics</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📈 FinSight</h1>
+      <p class="subtitle">Retail Investment Analytics</p>
+    </header>
+
+    <div class="search-box">
+      <input type="text" id="symbolInput" placeholder="Enter stock symbol (e.g., AAPL, TSLA)" autofocus>
+      <button id="fetchBtn">Analyze</button>
+    </div>
+
+    <div id="dashboard" class="dashboard hidden">
+      <div class="cards">
+        <div class="card glass">
+          <div class="label">Latest Price</div>
+          <div class="value" id="price">—</div>
+          <div class="symbol-display" id="symbolName"></div>
+        </div>
+        <div class="card glass">
+          <div class="label">20-Day SMA</div>
+          <div class="value" id="sma">—</div>
+          <div class="trend">Simple Moving Average</div>
+        </div>
+        <div class="card glass">
+          <div class="label">Volatility (Annualized)</div>
+          <div class="value" id="volatility">—</div>
+          <div class="trend">Log returns, 252 days</div>
+        </div>
+      </div>
+
+      <div class="chart-container glass">
+        <canvas id="priceChart"></canvas>
+      </div>
+    </div>
+
+    <div id="error" class="error-message hidden"></div>
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Crunching numbers...</p>
+    </div>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
