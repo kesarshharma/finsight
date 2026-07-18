@@ -93,6 +93,22 @@ header h1 {
 
 .hidden { display: none !important; }
 
+/* ---------- Summary Card ---------- */
+.summary-card {
+  padding: 1.5rem;
+  border: 1px solid rgba(124, 77, 255, 0.3);
+  border-radius: var(--radius);
+  backdrop-filter: blur(15px);
+  background: rgba(124, 77, 255, 0.05);
+}
+
+.summary-text {
+  font-size: 1.05rem;
+  color: #d0d0d0;
+  line-height: 1.6;
+  margin-top: 0.5rem;
+}
+
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

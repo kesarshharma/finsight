@@ -6,56 +6,58 @@ const loadingDiv = document.getElementById('loading');
 const fetchBtn = document.getElementById('fetchBtn');
 const symbolInput = document.getElementById('symbolInput');
 const modalOverlay = document.getElementById('infoModal');
+const summaryCard = document.getElementById('summaryCard');
+const summaryText = document.getElementById('summaryText');
 
-// Info data for each metric
+// Info data for each metric (unchanged)
 const infoData = {
   price: {
     title: 'Latest Close Price',
     formula: 'Latest closing price = Pt',
-    explain: 'The last traded price of the stock at the end of the most recent trading day. It reflects the consensus value of the stock at that moment.',
+    explain: 'The last traded price of the stock at the end of the most recent trading day.',
     meaning: 'Use this to see the current valuation. It is the baseline for all other calculations.'
   },
   sma: {
     title: '20-Day Simple Moving Average',
     formula: 'SMA20 = (P₁ + P₂ + ... + P₂₀) / 20',
-    explain: 'Add the closing prices of the last 20 days and divide by 20. This smooths out daily noise and shows the general trend direction.',
-    meaning: 'If the price is above the SMA, the trend is up. If below, the trend is down. Crosses can signal trend changes.'
+    explain: 'Add the closing prices of the last 20 days and divide by 20.',
+    meaning: 'Price above SMA => uptrend; below SMA => downtrend.'
   },
   volatility: {
     title: 'Annualized Volatility',
-    formula: 'Daily return: r_t = ln(P_t / P_{t-1})\nDaily σ = std(r_t)\nAnnual σ = Daily σ × √252',
-    explain: 'Calculated as the standard deviation of daily logarithmic returns, then scaled to a full year using 252 trading days. Expressed as a decimal (e.g., 0.27 = 27%).',
-    meaning: 'Higher volatility means larger price swings – higher risk but also higher potential reward. Low volatility suggests a more stable stock.'
+    formula: 'Daily σ = std(log returns)\nAnnual σ = Daily σ × √252',
+    explain: 'Standard deviation of daily logarithmic returns, scaled to a year.',
+    meaning: 'Higher volatility = larger price swings (higher risk/reward).'
   },
   rsi: {
     title: 'Relative Strength Index (14)',
-    formula: 'RS = Average Gain / Average Loss over 14 periods\nRSI = 100 - 100/(1+RS)',
-    explain: 'Measures the speed and change of price movements. Oscillates between 0 and 100.',
-    meaning: 'RSI > 70 typically indicates overbought (potential pullback). RSI < 30 indicates oversold (potential rally). Centerline crosses also give signals.'
+    formula: 'RS = Avg Gain / Avg Loss over 14 days\nRSI = 100 - 100/(1+RS)',
+    explain: 'Momentum oscillator between 0 and 100.',
+    meaning: 'Over 70 = overbought (possible pullback); under 30 = oversold (possible rally).'
   },
   macd: {
-    title: 'MACD (Moving Average Convergence Divergence)',
-    formula: 'MACD Line = 12-period EMA - 26-period EMA\nSignal Line = 9-period EMA of MACD\nHistogram = MACD - Signal',
-    explain: 'A trend-following momentum indicator that shows the relationship between two moving averages.',
-    meaning: 'When MACD crosses above the Signal line, it is a bullish signal. When it crosses below, it is bearish. The histogram visualizes the difference.'
+    title: 'MACD',
+    formula: 'MACD = 12‑period EMA − 26‑period EMA\nSignal = 9‑period EMA of MACD',
+    explain: 'Trend‑following momentum indicator.',
+    meaning: 'MACD crosses above Signal = bullish; crosses below = bearish.'
   },
   beta: {
     title: 'Beta (β)',
-    formula: 'β = Covariance(R_stock, R_market) / Variance(R_market)',
-    explain: 'Measures the stock\'s sensitivity to market movements (S&P 500). A beta of 1 means it moves with the market.',
-    meaning: 'β > 1: more volatile than the market (aggressive). β < 1: less volatile (defensive). Negative beta moves opposite to market.'
+    formula: 'β = Cov(R_stock, R_market) / Var(R_market)',
+    explain: 'Sensitivity to market (S&P 500).',
+    meaning: 'β > 1 : more volatile than market; β < 1 : less volatile.'
   },
   pe: {
-    title: 'Price-to-Earnings Ratio (P/E)',
-    formula: 'P/E = Stock Price / Earnings Per Share (TTM)',
-    explain: 'Shows how much investors are willing to pay per dollar of earnings. Trailing P/E uses the last 12 months of earnings.',
-    meaning: 'A high P/E may indicate growth expectations or overvaluation. A low P/E could mean undervaluation or declining business. Compare within the same industry.'
+    title: 'P/E Ratio',
+    formula: 'P/E = Price / Earnings Per Share (TTM)',
+    explain: 'How much investors pay per dollar of earnings.',
+    meaning: 'High P/E = growth expectations (or overvalued); Low P/E = possible undervaluation.'
   },
   marketcap: {
     title: 'Market Capitalization',
-    formula: 'Market Cap = Share Price × Total Outstanding Shares',
-    explain: 'The total market value of a company’s outstanding shares. Categorizes the company size.',
-    meaning: 'Large-cap (>$10B): stable, mature companies. Mid-cap ($2B–10B): growth potential. Small-cap (<$2B): higher risk, higher growth.'
+    formula: 'Market Cap = Price × Outstanding Shares',
+    explain: 'Total market value of the company.',
+    meaning: 'Large‑cap (>$10B) = stable; Small‑cap (<$2B) = higher growth/risk.'
   }
 };
 
@@ -82,11 +84,71 @@ symbolInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') fetchData();
 });
 
+// ---------- AI Summary Generator ----------
+function generateSummary(history, analytics, enhanced) {
+  // Use last 15 trading days from the history array
+  const recent = history.slice(-15);
+  if (recent.length < 5) return "Not enough data for a meaningful summary.";
+
+  const firstPrice = recent[0].close;
+  const lastPrice = recent[recent.length - 1].close;
+  const priceChange = lastPrice - firstPrice;
+  const percentChange = (priceChange / firstPrice) * 100;
+
+  // Trend direction: simple linear regression or just compare first half vs second half
+  const mid = Math.floor(recent.length / 2);
+  const firstHalfAvg = recent.slice(0, mid).reduce((s, d) => s + d.close, 0) / mid;
+  const secondHalfAvg = recent.slice(mid).reduce((s, d) => s + d.close, 0) / (recent.length - mid);
+  let trendDesc = '';
+  let outlook = '';
+  if (secondHalfAvg > firstHalfAvg * 1.02) {
+    trendDesc = 'trending upward';
+    outlook = 'bullish';
+  } else if (secondHalfAvg < firstHalfAvg * 0.98) {
+    trendDesc = 'declining';
+    outlook = 'bearish';
+  } else {
+    trendDesc = 'moving sideways';
+    outlook = 'neutral';
+  }
+
+  // Daily swing (volatility proxy): average absolute daily change
+  let dailyChanges = [];
+  for (let i = 1; i < recent.length; i++) {
+    dailyChanges.push(Math.abs(recent[i].close - recent[i-1].close));
+  }
+  const avgDailyMove = dailyChanges.reduce((a, b) => a + b, 0) / dailyChanges.length;
+  const avgDailyPercent = (avgDailyMove / lastPrice) * 100;
+  let swingDesc = '';
+  if (avgDailyPercent > 2) swingDesc = 'extremely volatile, with large daily swings';
+  else if (avgDailyPercent > 1) swingDesc = 'somewhat volatile, with noticeable daily moves';
+  else swingDesc = 'relatively stable, with small daily changes';
+
+  // Incorporate annualized volatility from analytics for risk context
+  const annualVol = analytics.volatility * 100; // as percent
+  let riskLevel = '';
+  if (annualVol > 40) riskLevel = 'very high risk';
+  else if (annualVol > 25) riskLevel = 'high risk';
+  else if (annualVol > 15) riskLevel = 'moderate risk';
+  else riskLevel = 'low risk';
+
+  const symbolName = enhanced.name || enhanced.symbol;
+
+  const summary = `${symbolName} has been **${trendDesc}** over the last 15 trading days. ` +
+    `The price changed by **${percentChange.toFixed(1)}%** (from $${firstPrice.toFixed(2)} to $${lastPrice.toFixed(2)}). ` +
+    `The stock is **${swingDesc}**, and its annualized volatility is **${annualVol.toFixed(1)}%**, indicating **${riskLevel}**. ` +
+    `Overall, the short‑term outlook appears **${outlook}**.`;
+
+  return summary;
+}
+
+// ---------- Main Fetch ----------
 async function fetchData() {
   const symbol = symbolInput.value.trim().toUpperCase();
   if (!symbol) return;
 
   dashboard.classList.add('hidden');
+  summaryCard.classList.add('hidden');
   errorDiv.classList.add('hidden');
   loadingDiv.classList.remove('hidden');
 
@@ -103,7 +165,7 @@ async function fetchData() {
     if (!historyRes.ok) throw new Error('Could not fetch historical data');
     const historyData = await historyRes.json();
 
-    // Basic cards
+    // Populate basic cards
     document.getElementById('price').textContent = `$${analytics.latest_close}`;
     document.getElementById('sma').textContent = `$${analytics.sma_20}`;
     document.getElementById('volatility').textContent = `${(analytics.volatility * 100).toFixed(2)}%`;
@@ -123,7 +185,14 @@ async function fetchData() {
     document.getElementById('high52').textContent = enhanced['52w_high'] ?? '—';
     document.getElementById('low52').textContent = enhanced['52w_low'] ?? '—';
 
+    // Generate AI summary
+    const summary = generateSummary(historyData.history, analytics, enhanced);
+    summaryText.textContent = summary;
+    summaryCard.classList.remove('hidden');
+
+    // Draw chart
     drawChart(historyData.history, analytics.sma_20);
+
     dashboard.classList.remove('hidden');
   } catch (err) {
     errorDiv.textContent = err.message;
