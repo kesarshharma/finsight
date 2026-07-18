@@ -86,7 +86,6 @@ symbolInput.addEventListener('keypress', (e) => {
 
 // ---------- AI Summary Generator ----------
 function generateSummary(history, analytics, enhanced) {
-  // Use last 15 trading days from the history array
   const recent = history.slice(-15);
   if (recent.length < 5) return "Not enough data for a meaningful summary.";
 
@@ -95,7 +94,6 @@ function generateSummary(history, analytics, enhanced) {
   const priceChange = lastPrice - firstPrice;
   const percentChange = (priceChange / firstPrice) * 100;
 
-  // Trend direction: simple linear regression or just compare first half vs second half
   const mid = Math.floor(recent.length / 2);
   const firstHalfAvg = recent.slice(0, mid).reduce((s, d) => s + d.close, 0) / mid;
   const secondHalfAvg = recent.slice(mid).reduce((s, d) => s + d.close, 0) / (recent.length - mid);
@@ -112,7 +110,6 @@ function generateSummary(history, analytics, enhanced) {
     outlook = 'neutral';
   }
 
-  // Daily swing (volatility proxy): average absolute daily change
   let dailyChanges = [];
   for (let i = 1; i < recent.length; i++) {
     dailyChanges.push(Math.abs(recent[i].close - recent[i-1].close));
@@ -124,8 +121,7 @@ function generateSummary(history, analytics, enhanced) {
   else if (avgDailyPercent > 1) swingDesc = 'somewhat volatile, with noticeable daily moves';
   else swingDesc = 'relatively stable, with small daily changes';
 
-  // Incorporate annualized volatility from analytics for risk context
-  const annualVol = analytics.volatility * 100; // as percent
+  const annualVol = analytics.volatility * 100;
   let riskLevel = '';
   if (annualVol > 40) riskLevel = 'very high risk';
   else if (annualVol > 25) riskLevel = 'high risk';
@@ -133,7 +129,6 @@ function generateSummary(history, analytics, enhanced) {
   else riskLevel = 'low risk';
 
   const symbolName = enhanced.name || enhanced.symbol;
-
   const summary = `${symbolName} has been **${trendDesc}** over the last 15 trading days. ` +
     `The price changed by **${percentChange.toFixed(1)}%** (from $${firstPrice.toFixed(2)} to $${lastPrice.toFixed(2)}). ` +
     `The stock is **${swingDesc}**, and its annualized volatility is **${annualVol.toFixed(1)}%**, indicating **${riskLevel}**. ` +
@@ -158,8 +153,7 @@ async function fetchData() {
     const analytics = await analyticsRes.json();
 
     const enhancedRes = await fetch(`/enhanced/${symbol}`);
-    if (!enhancedRes.ok) throw new Error('Could not fetch enhanced analytics');
-    const enhanced = await enhancedRes.json();
+    const enhanced = await enhancedRes.json(); // now always returns 200 (fallback on error)
 
     const historyRes = await fetch(`/historical/${symbol}`);
     if (!historyRes.ok) throw new Error('Could not fetch historical data');
@@ -174,7 +168,7 @@ async function fetchData() {
     document.getElementById('companyName').textContent = enhanced.name || symbol;
     document.getElementById('tickerSymbol').textContent = enhanced.symbol;
 
-    // Enhanced cards
+    // Enhanced cards – gracefully handle missing fields
     document.getElementById('rsi').textContent = enhanced.rsi ?? '—';
     document.getElementById('macd_value').textContent = enhanced.macd?.macd_line?.toFixed(4) ?? '—';
     document.getElementById('macd_signal').textContent = enhanced.macd?.signal?.toFixed(4) ?? '—';
@@ -226,14 +220,14 @@ function drawChart(history, sma20) {
         {
           label: 'Close Price',
           data: closes,
-          borderColor: '#00bcd4',
-          backgroundColor: 'rgba(0, 188, 212, 0.1)',
+          borderColor: '#d4af37',
+          backgroundColor: 'rgba(212, 175, 55, 0.1)',
           borderWidth: 2, tension: 0.2, pointRadius: 0, fill: true,
         },
         {
           label: '20-Day SMA',
           data: smaValues,
-          borderColor: '#7c4dff',
+          borderColor: '#c0c0c0',
           borderWidth: 2, tension: 0.2, pointRadius: 0, fill: false,
         }
       ]
@@ -251,3 +245,9 @@ function drawChart(history, sma20) {
     }
   });
 }
+
+// ---------- Auto‑load default stock on page visit ----------
+window.addEventListener('DOMContentLoaded', () => {
+  symbolInput.value = 'AAPL';
+  fetchData();
+});

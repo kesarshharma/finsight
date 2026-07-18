@@ -1,298 +1,248 @@
-:root {
-  --bg: #0b0f19;
-  --surface: rgba(255, 255, 255, 0.05);
-  --glass: rgba(20, 25, 40, 0.7);
-  --text: #e0e0e0;
-  --accent: #00bcd4;
-  --accent2: #7c4dff;
-  --error: #ff5252;
-  --radius: 16px;
+let chartInstance = null;
+
+const dashboard = document.getElementById('dashboard');
+const errorDiv = document.getElementById('error');
+const loadingDiv = document.getElementById('loading');
+const fetchBtn = document.getElementById('fetchBtn');
+const symbolInput = document.getElementById('symbolInput');
+const modalOverlay = document.getElementById('infoModal');
+const summaryCard = document.getElementById('summaryCard');
+const summaryText = document.getElementById('summaryText');
+
+// Info data for each metric
+const infoData = {
+  price: {
+    title: 'Latest Close Price',
+    formula: 'Latest closing price = Pt',
+    explain: 'The last traded price of the stock at the end of the most recent trading day.',
+    meaning: 'Use this to see the current valuation. It is the baseline for all other calculations.'
+  },
+  sma: {
+    title: '20-Day Simple Moving Average',
+    formula: 'SMA20 = (P₁ + P₂ + ... + P₂₀) / 20',
+    explain: 'Add the closing prices of the last 20 days and divide by 20.',
+    meaning: 'Price above SMA => uptrend; below SMA => downtrend.'
+  },
+  volatility: {
+    title: 'Annualized Volatility',
+    formula: 'Daily σ = std(log returns)\nAnnual σ = Daily σ × √252',
+    explain: 'Standard deviation of daily logarithmic returns, scaled to a year.',
+    meaning: 'Higher volatility = larger price swings (higher risk/reward).'
+  },
+  rsi: {
+    title: 'Relative Strength Index (14)',
+    formula: 'RS = Avg Gain / Avg Loss over 14 days\nRSI = 100 - 100/(1+RS)',
+    explain: 'Momentum oscillator between 0 and 100.',
+    meaning: 'Over 70 = overbought (possible pullback); under 30 = oversold (possible rally).'
+  },
+  macd: {
+    title: 'MACD',
+    formula: 'MACD = 12‑period EMA − 26‑period EMA\nSignal = 9‑period EMA of MACD',
+    explain: 'Trend‑following momentum indicator.',
+    meaning: 'MACD crosses above Signal = bullish; crosses below = bearish.'
+  },
+  beta: {
+    title: 'Beta (β)',
+    formula: 'β = Cov(R_stock, R_market) / Var(R_market)',
+    explain: 'Sensitivity to market (S&P 500).',
+    meaning: 'β > 1 : more volatile than market; β < 1 : less volatile.'
+  },
+  pe: {
+    title: 'P/E Ratio',
+    formula: 'P/E = Price / Earnings Per Share (TTM)',
+    explain: 'How much investors pay per dollar of earnings.',
+    meaning: 'High P/E = growth expectations (or overvalued); Low P/E = possible undervaluation.'
+  },
+  marketcap: {
+    title: 'Market Capitalization',
+    formula: 'Market Cap = Price × Outstanding Shares',
+    explain: 'Total market value of the company.',
+    meaning: 'Large‑cap (>$10B) = stable; Small‑cap (<$2B) = higher growth/risk.'
+  }
+};
+
+function showInfo(metric) {
+  const data = infoData[metric];
+  if (!data) return;
+  document.getElementById('modalTitle').textContent = data.title;
+  document.getElementById('modalFormula').textContent = data.formula;
+  document.getElementById('modalExplanation').textContent = data.explain;
+  document.getElementById('modalMeaning').textContent = data.meaning;
+  modalOverlay.classList.remove('hidden');
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-body {
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 2rem 1rem;
+function closeModal() {
+  modalOverlay.classList.add('hidden');
 }
 
-.container {
-  width: 100%;
-  max-width: 1100px;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+modalOverlay.addEventListener('click', (e) => {
+  if (e.target === modalOverlay) closeModal();
+});
+
+fetchBtn.addEventListener('click', fetchData);
+symbolInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') fetchData();
+});
+
+// ---------- AI Summary Generator ----------
+function generateSummary(history, analytics, enhanced) {
+  const recent = history.slice(-15);
+  if (recent.length < 5) return "Not enough data for a meaningful summary.";
+
+  const firstPrice = recent[0].close;
+  const lastPrice = recent[recent.length - 1].close;
+  const priceChange = lastPrice - firstPrice;
+  const percentChange = (priceChange / firstPrice) * 100;
+
+  const mid = Math.floor(recent.length / 2);
+  const firstHalfAvg = recent.slice(0, mid).reduce((s, d) => s + d.close, 0) / mid;
+  const secondHalfAvg = recent.slice(mid).reduce((s, d) => s + d.close, 0) / (recent.length - mid);
+  let trendDesc = '';
+  let outlook = '';
+  if (secondHalfAvg > firstHalfAvg * 1.02) {
+    trendDesc = 'trending upward';
+    outlook = 'bullish';
+  } else if (secondHalfAvg < firstHalfAvg * 0.98) {
+    trendDesc = 'declining';
+    outlook = 'bearish';
+  } else {
+    trendDesc = 'moving sideways';
+    outlook = 'neutral';
+  }
+
+  let dailyChanges = [];
+  for (let i = 1; i < recent.length; i++) {
+    dailyChanges.push(Math.abs(recent[i].close - recent[i-1].close));
+  }
+  const avgDailyMove = dailyChanges.reduce((a, b) => a + b, 0) / dailyChanges.length;
+  const avgDailyPercent = (avgDailyMove / lastPrice) * 100;
+  let swingDesc = '';
+  if (avgDailyPercent > 2) swingDesc = 'extremely volatile, with large daily swings';
+  else if (avgDailyPercent > 1) swingDesc = 'somewhat volatile, with noticeable daily moves';
+  else swingDesc = 'relatively stable, with small daily changes';
+
+  const annualVol = analytics.volatility * 100;
+  let riskLevel = '';
+  if (annualVol > 40) riskLevel = 'very high risk';
+  else if (annualVol > 25) riskLevel = 'high risk';
+  else if (annualVol > 15) riskLevel = 'moderate risk';
+  else riskLevel = 'low risk';
+
+  const symbolName = enhanced.name || enhanced.symbol;
+  const summary = `${symbolName} has been **${trendDesc}** over the last 15 trading days. ` +
+    `The price changed by **${percentChange.toFixed(1)}%** (from $${firstPrice.toFixed(2)} to $${lastPrice.toFixed(2)}). ` +
+    `The stock is **${swingDesc}**, and its annualized volatility is **${annualVol.toFixed(1)}%**, indicating **${riskLevel}**. ` +
+    `Overall, the short‑term outlook appears **${outlook}**.`;
+
+  return summary;
 }
 
-header { text-align: center; }
+// ---------- Main Fetch ----------
+async function fetchData() {
+  const symbol = symbolInput.value.trim().toUpperCase();
+  if (!symbol) return;
 
-header h1 {
-  font-size: 3rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 0.25rem;
+  dashboard.classList.add('hidden');
+  summaryCard.classList.add('hidden');
+  errorDiv.classList.add('hidden');
+  loadingDiv.classList.remove('hidden');
+
+  try {
+    const analyticsRes = await fetch(`/analytics/${symbol}`);
+    if (!analyticsRes.ok) throw new Error('Symbol not found or insufficient data');
+    const analytics = await analyticsRes.json();
+
+    const enhancedRes = await fetch(`/enhanced/${symbol}`);
+    // Enhanced now always returns 200, even with fallback data – no throw needed
+    const enhanced = await enhancedRes.json();
+
+    const historyRes = await fetch(`/historical/${symbol}`);
+    if (!historyRes.ok) throw new Error('Could not fetch historical data');
+    const historyData = await historyRes.json();
+
+    // Populate basic cards
+    document.getElementById('price').textContent = `$${analytics.latest_close}`;
+    document.getElementById('sma').textContent = `$${analytics.sma_20}`;
+    document.getElementById('volatility').textContent = `${(analytics.volatility * 100).toFixed(2)}%`;
+
+    // Company name and ticker
+    document.getElementById('companyName').textContent = enhanced.name || symbol;
+    document.getElementById('tickerSymbol').textContent = enhanced.symbol;
+
+    // Enhanced cards – gracefully handle missing fields
+    document.getElementById('rsi').textContent = enhanced.rsi ?? '—';
+    document.getElementById('macd_value').textContent = enhanced.macd?.macd_line?.toFixed(4) ?? '—';
+    document.getElementById('macd_signal').textContent = enhanced.macd?.signal?.toFixed(4) ?? '—';
+    document.getElementById('macd_hist').textContent = enhanced.macd?.histogram?.toFixed(4) ?? '—';
+    document.getElementById('beta').textContent = enhanced.beta ?? '—';
+    document.getElementById('pe').textContent = enhanced.pe_ratio ?? '—';
+    document.getElementById('marketcap').textContent = enhanced.market_cap ?? '—';
+    document.getElementById('high52').textContent = enhanced['52w_high'] ?? '—';
+    document.getElementById('low52').textContent = enhanced['52w_low'] ?? '—';
+
+    // Generate AI summary
+    const summary = generateSummary(historyData.history, analytics, enhanced);
+    summaryText.textContent = summary;
+    summaryCard.classList.remove('hidden');
+
+    // Draw chart
+    drawChart(historyData.history, analytics.sma_20);
+
+    dashboard.classList.remove('hidden');
+  } catch (err) {
+    errorDiv.textContent = err.message;
+    errorDiv.classList.remove('hidden');
+  } finally {
+    loadingDiv.classList.add('hidden');
+  }
 }
 
-.subtitle {
-  color: #888;
-  font-size: 1rem;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
+function drawChart(history, sma20) {
+  const ctx = document.getElementById('priceChart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
 
-.search-box {
-  display: flex;
-  justify-content: center;
-  gap: 0.75rem;
-}
+  const dates = history.map(h => h.date);
+  const closes = history.map(h => h.close);
+  const smaValues = [];
+  for (let i = 0; i < closes.length; i++) {
+    if (i < 19) smaValues.push(null);
+    else {
+      const slice = closes.slice(i - 19, i + 1);
+      const avg = slice.reduce((a, b) => a + b, 0) / 20;
+      smaValues.push(avg);
+    }
+  }
 
-#symbolInput {
-  background: var(--glass);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px;
-  padding: 0.9rem 1.5rem;
-  font-size: 1rem;
-  color: white;
-  outline: none;
-  width: 300px;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s;
-}
-
-#symbolInput:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 15px rgba(0,188,212,0.3);
-}
-
-#fetchBtn {
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  border: none;
-  border-radius: 12px;
-  padding: 0.9rem 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  color: white;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-#fetchBtn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0,188,212,0.4);
-}
-
-.dashboard { display: flex; flex-direction: column; gap: 2rem; }
-
-.hidden { display: none !important; }
-
-/* ---------- Summary Card ---------- */
-.summary-card {
-  padding: 1.5rem;
-  border: 1px solid rgba(124, 77, 255, 0.3);
-  border-radius: var(--radius);
-  backdrop-filter: blur(15px);
-  background: rgba(124, 77, 255, 0.05);
-}
-
-.summary-text {
-  font-size: 1.05rem;
-  color: #d0d0d0;
-  line-height: 1.6;
-  margin-top: 0.5rem;
-}
-
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-}
-
-#enhancedCards { margin-top: 0.5rem; }
-
-.card {
-  backdrop-filter: blur(15px);
-  background: var(--glass);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-  transition: transform 0.3s, box-shadow 0.3s;
-  position: relative;
-}
-
-.card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-}
-
-.label {
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #999;
-}
-
-.info-icon {
-  font-size: 1.2rem;
-  cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
-.info-icon:hover { opacity: 1; }
-
-.value {
-  font-size: 2rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin: 0.5rem 0;
-  word-break: break-word;
-}
-
-.symbol-display {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 0.5rem;
-}
-
-.company-name {
-  font-size: 1rem;
-  font-weight: 500;
-  color: #ddd;
-}
-
-.ticker {
-  font-size: 0.75rem;
-  color: #888;
-}
-
-.trend {
-  font-size: 0.8rem;
-  color: #666;
-  margin-top: 0.3rem;
-}
-
-.chart-container {
-  background: var(--glass);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-  height: 400px;
-  position: relative;
-  backdrop-filter: blur(15px);
-}
-
-canvas { width: 100% !important; height: 100% !important; }
-
-.error-message {
-  background: rgba(255,82,82,0.15);
-  border: 1px solid var(--error);
-  border-radius: 12px;
-  padding: 1rem;
-  color: var(--error);
-  text-align: center;
-}
-
-.loading {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid rgba(255,255,255,0.1);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ---------- Modal ---------- */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(6px);
-}
-
-.modal-card {
-  background: var(--glass);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 20px;
-  padding: 2rem;
-  max-width: 480px;
-  width: 90%;
-  color: var(--text);
-  position: relative;
-}
-
-.modal-close {
-  position: absolute;
-  top: 1rem;
-  right: 1.5rem;
-  background: none;
-  border: none;
-  color: #aaa;
-  font-size: 2rem;
-  cursor: pointer;
-}
-
-.modal-close:hover { color: white; }
-
-#modalTitle {
-  font-size: 1.6rem;
-  margin-bottom: 1rem;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.formula-box {
-  background: rgba(255,255,255,0.05);
-  border-radius: 10px;
-  padding: 1rem;
-  font-family: 'Courier New', monospace;
-  font-size: 1rem;
-  color: var(--accent);
-  margin-bottom: 1rem;
-  overflow-x: auto;
-}
-
-.modal-explain {
-  color: #ccc;
-  line-height: 1.6;
-  margin-bottom: 0.8rem;
-}
-
-.modal-meaning {
-  color: #aaa;
-  font-style: italic;
-  border-left: 3px solid var(--accent2);
-  padding-left: 1rem;
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [
+        {
+          label: 'Close Price',
+          data: closes,
+          borderColor: '#d4af37',
+          backgroundColor: 'rgba(212, 175, 55, 0.1)',
+          borderWidth: 2, tension: 0.2, pointRadius: 0, fill: true,
+        },
+        {
+          label: '20-Day SMA',
+          data: smaValues,
+          borderColor: '#c0c0c0',
+          borderWidth: 2, tension: 0.2, pointRadius: 0, fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#ccc', usePointStyle: true } },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        x: { ticks: { color: '#888', maxTicksLimit: 8 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        y: { ticks: { color: '#888', callback: v => '$' + v }, grid: { color: 'rgba(255,255,255,0.05)' } }
+      }
+    }
+  });
 }

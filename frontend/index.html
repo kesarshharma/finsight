@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FinSight | Investment Analytics</title>
+  <title>FinSight | Royal Investment Analytics</title>
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -23,8 +23,8 @@
 
   <div class="container">
     <header>
-      <h1>📈 FinSight</h1>
-      <p class="subtitle">Retail Investment Analytics – Understand Every Number</p>
+      <h1>👑 FinSight</h1>
+      <p class="subtitle">Royal Investment Analytics – Understand Every Number</p>
     </header>
 
     <div class="search-box">
@@ -32,16 +32,16 @@
       <button id="fetchBtn">Analyze</button>
     </div>
 
-    <!-- NEW: AI Summary Card (hidden until search) -->
+    <!-- AI Summary Card -->
     <div id="summaryCard" class="summary-card glass hidden">
       <div class="card-header">
-        <span class="label">🤖 FinSight AI Insight</span>
+        <span class="label">🤖 Royal Insight</span>
       </div>
       <p id="summaryText" class="summary-text"></p>
     </div>
 
     <div id="dashboard" class="dashboard hidden">
-      <!-- Basic Analytics Cards -->
+      <!-- Basic Cards -->
       <div class="cards">
         <div class="card glass">
           <div class="card-header">
@@ -56,35 +56,35 @@
         </div>
         <div class="card glass">
           <div class="card-header">
-            <span class="label">20‑Day Simple Moving Average</span>
+            <span class="label">20‑Day SMA</span>
             <span class="info-icon" onclick="showInfo('sma')">ℹ️</span>
           </div>
           <div class="value" id="sma">—</div>
-          <div class="trend">SMA</div>
+          <div class="trend">Simple Moving Average</div>
         </div>
         <div class="card glass">
           <div class="card-header">
-            <span class="label">Annualized Volatility</span>
+            <span class="label">Volatility</span>
             <span class="info-icon" onclick="showInfo('volatility')">ℹ️</span>
           </div>
           <div class="value" id="volatility">—</div>
-          <div class="trend">Log returns × √252</div>
+          <div class="trend">Annualized (Log Returns)</div>
         </div>
       </div>
 
-      <!-- Enhanced Analytics Cards -->
+      <!-- Enhanced Cards -->
       <div class="cards" id="enhancedCards">
         <div class="card glass">
           <div class="card-header">
-            <span class="label">Relative Strength Index (14)</span>
+            <span class="label">RSI (14)</span>
             <span class="info-icon" onclick="showInfo('rsi')">ℹ️</span>
           </div>
           <div class="value" id="rsi">—</div>
-          <div class="trend">Over 70 overbought, under 30 oversold</div>
+          <div class="trend">Over 70 overbought / Under 30 oversold</div>
         </div>
         <div class="card glass">
           <div class="card-header">
-            <span class="label">MACD (Moving Average Convergence Divergence)</span>
+            <span class="label">MACD</span>
             <span class="info-icon" onclick="showInfo('macd')">ℹ️</span>
           </div>
           <div class="value" id="macd_value">—</div>
@@ -101,7 +101,7 @@
         </div>
         <div class="card glass">
           <div class="card-header">
-            <span class="label">Price‑to‑Earnings (P/E) Ratio</span>
+            <span class="label">P/E Ratio</span>
             <span class="info-icon" onclick="showInfo('pe')">ℹ️</span>
           </div>
           <div class="value" id="pe">—</div>
@@ -109,12 +109,11 @@
         </div>
         <div class="card glass">
           <div class="card-header">
-            <span class="label">Market Capitalization</span>
+            <span class="label">Market Cap</span>
             <span class="info-icon" onclick="showInfo('marketcap')">ℹ️</span>
           </div>
           <div class="value" id="marketcap">—</div>
-          <div class="trend">52W High: <span id="high52">—</span></div>
-          <div class="trend">52W Low: <span id="low52">—</span></div>
+          <div class="trend">52W High: <span id="high52">—</span> | Low: <span id="low52">—</span></div>
         </div>
       </div>
 
@@ -126,7 +125,7 @@
     <div id="error" class="error-message hidden"></div>
     <div id="loading" class="loading hidden">
       <div class="spinner"></div>
-      <p>Crunching numbers...</p>
+      <p>Preparing royal analytics...</p>
     </div>
   </div>
 
