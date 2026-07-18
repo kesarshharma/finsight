@@ -78,15 +78,28 @@ async def historical(symbol: str):
 async def enhanced_analytics(symbol: str):
     symbol_upper = symbol.upper()
 
-    # 1. Check in‑memory cache
+    # 1. In‑memory cache check
     cached = _enhanced_cache.get(symbol_upper)
     if cached and time.time() - cached[1] < _CACHE_TTL_SECONDS:
         return cached[0]
 
+    # Fallback that gets returned when Yahoo fails – empty but stable
+    fallback = {
+        "symbol": symbol_upper,
+        "name": symbol_upper,
+        "latest_price": None,
+        "rsi": None,
+        "macd": None,
+        "beta": None,
+        "pe_ratio": "N/A",
+        "market_cap": "N/A",
+        "52w_high": "N/A",
+        "52w_low": "N/A",
+    }
+
     import yfinance as yf
     try:
         stock = yf.Ticker(symbol)
-        # Fetch info safely (may hit rate limits)
         try:
             info = stock.info
         except Exception:
@@ -94,7 +107,8 @@ async def enhanced_analytics(symbol: str):
 
         hist = stock.history(period="1y")
         if hist.empty:
-            raise HTTPException(status_code=404, detail="No data found")
+            _enhanced_cache[symbol_upper] = (fallback, time.time())
+            return fallback
 
         close_prices = hist["Close"].tolist()
         latest = round(close_prices[-1], 2) if close_prices else None
@@ -177,14 +191,13 @@ async def enhanced_analytics(symbol: str):
             "52w_low": low_52w,
         }
 
-        # Store in cache
         _enhanced_cache[symbol_upper] = (result, time.time())
         return result
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Enhanced analytics failed: {str(e)}")
+    except Exception:
+        # Any unforeseen error → return fallback, no crash
+        _enhanced_cache[symbol_upper] = (fallback, time.time())
+        return fallback
 
 
 # -------------------- Serve the frontend dashboard --------------------
